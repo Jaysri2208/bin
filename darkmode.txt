@@ -1,0 +1,129 @@
+darkmode.java 
+
+package com.example.boot;
+
+import android.content.res.Configuration;
+import androidx.appcompat.app.AppCompatDelegate;
+
+import android.widget.Switch;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+
+import android.os.Bundle;
+import android.widget.CompoundButton;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+public class darkmode extends AppCompatActivity {
+    private Switch darkModeSwitch;
+    private SharedPreferences sharedPreferences;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.darkomode);
+
+        darkModeSwitch = findViewById(R.id.dark_mode_switch);
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        // Load the state of the dark mode setting from SharedPreferences
+        boolean isDarkModeEnabled = sharedPreferences.getBoolean("dark_mode", false);
+        darkModeSwitch.setChecked(isDarkModeEnabled);
+
+        darkModeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                // Save the state of the dark mode setting in SharedPreferences
+                sharedPreferences.edit().putBoolean("dark_mode", isChecked).apply();
+
+                // Apply the setting immediately if needed
+                applyDarkMode(isChecked);
+            }
+        });
+    }
+
+    private void applyDarkMode(boolean isEnabled) {
+        int nightModeFlags =
+                getResources().getConfiguration().uiMode &
+                        Configuration.UI_MODE_NIGHT_MASK;
+
+        switch (nightModeFlags) {
+            case Configuration.UI_MODE_NIGHT_YES:
+                if (!isEnabled) {
+                    AppCompatDelegate.setDefaultNightMode(
+                            AppCompatDelegate.MODE_NIGHT_NO);
+                    recreate();
+                }
+                break;
+
+            case Configuration.UI_MODE_NIGHT_NO:
+                if (isEnabled) {
+                    AppCompatDelegate.setDefaultNightMode(
+                            AppCompatDelegate.MODE_NIGHT_YES);
+                    recreate();
+                }
+                break;
+
+            case Configuration.UI_MODE_NIGHT_UNDEFINED:
+                break;
+        }
+    }
+
+}
+
+
+darkmode.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+
+    tools:context=".darkmode">
+
+    <Switch
+        android:id="@+id/dark_mode_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dark Mode"
+        android:layout_centerInParent="true"/>
+
+</RelativeLayout>
+
+
+manifest
+
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example.boot">
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar"
+        tools:targetApi="31">
+        <activity
+            android:name=".darkmode"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
