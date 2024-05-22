@@ -1,0 +1,93 @@
+MainActivity.java :
+
+package com.example.contextmenu;
+
+import android.os.Bundle;
+import android.view.ContextMenu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+
+    private ListView contactListView;
+    private String[] contacts = {"Alice", "Bob", "Charlie", "David", "Eve"};
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        contactListView = findViewById(R.id.contact_list_view);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, contacts);
+        contactListView.setAdapter(adapter);
+
+        registerForContextMenu(contactListView);
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.context_menu, menu);
+    }
+
+    @Override
+    public boolean onContextItemSelected(@NonNull MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        String selectedContact = contacts[info.position];
+
+        int id = item.getItemId();
+        if (id == R.id.call) {
+            Toast.makeText(this, "Call " + selectedContact, Toast.LENGTH_SHORT).show();
+            return true;
+        } else if (id == R.id.video_call) {
+            Toast.makeText(this, "Video Call " + selectedContact, Toast.LENGTH_SHORT).show();
+            return true;
+        } else if (id == R.id.sms) {
+            Toast.makeText(this, "SMS " + selectedContact, Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        return super.onContextItemSelected(item);
+    }
+}
+
+
+activity_main.xml:
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ListView
+        android:id="@+id/contact_list_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+</RelativeLayout>
+
+
+
+
+res->menu->context_menu.xml
+context_menu.xml :
+
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/call"
+        android:title="Call"/>
+    <item
+        android:id="@+id/video_call"
+        android:title="Video Call"/>
+    <item
+        android:id="@+id/sms"
+        android:title="SMS"/>
+</menu>

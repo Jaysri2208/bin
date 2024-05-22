@@ -1,0 +1,88 @@
+MainActivity.java :
+
+package com.example.popupmenu;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.PopupMenu;
+import android.widget.Toast;
+
+public class MainActivity extends AppCompatActivity {
+
+    private static final int ID_DOSA = R.id.dosa;
+    private static final int ID_IDLY = R.id.idly;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        ImageButton buttonShowMenu = findViewById(R.id.button_show_menu);
+        buttonShowMenu.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showPopupMenu(view);
+            }
+        });
+    }
+
+    private void showPopupMenu(View view) {
+        PopupMenu popupMenu = new PopupMenu(this, view);
+        MenuInflater inflater = popupMenu.getMenuInflater();
+        inflater.inflate(R.menu.foodmenu, popupMenu.getMenu());
+        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                int itemId = item.getItemId();
+                if (itemId == ID_DOSA) {
+                    Toast.makeText(MainActivity.this, "Selected Dosa", Toast.LENGTH_LONG).show();
+                    return true;
+                } else if (itemId == ID_IDLY) {
+                    Toast.makeText(MainActivity.this, "Selected Idly", Toast.LENGTH_LONG).show();
+                    return true;
+                }
+                return false;
+            }
+        });
+        popupMenu.show();
+    }
+}
+
+
+
+
+activity_main.xml:
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageButton
+        android:id="@+id/button_show_menu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@android:drawable/ic_menu_more"
+        android:contentDescription="Menu"
+        android:layout_centerInParent="true"/>
+</RelativeLayout>
+
+
+
+in res-->create menu directory-->foodmenu.xml:
+
+foodmenu.xml:
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/idly"
+        android:title="Idly" />
+    <item
+        android:id="@+id/dosa"
+        android:title="Dosa" />
+</menu>

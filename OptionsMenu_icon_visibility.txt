@@ -1,0 +1,167 @@
+package com.example.demo;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+
+        // Find the menu items by their IDs
+        MenuItem settingsItem = menu.findItem(R.id.action_settings);
+        MenuItem aboutItem = menu.findItem(R.id.action_about);
+        MenuItem helpItem = menu.findItem(R.id.action_help);
+
+        // Remove all menu items
+        menu.clear();
+
+        // Add menu items in the desired order
+        menu.add(Menu.NONE, R.id.action_settings, Menu.NONE, "Settings").setIcon(R.drawable.ic);
+        menu.add(Menu.NONE, R.id.action_about, Menu.NONE, "About").setIcon(R.drawable.icm);
+        menu.add(Menu.NONE, R.id.action_help, Menu.NONE, "Help").setIcon(R.drawable.icmp);
+
+        // Change the visibility of menu items
+        settingsItem.setVisible(true);
+        aboutItem.setVisible(false); // Hide the "About" item
+        helpItem.setVisible(true);
+
+        return true;
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+        if (itemId == R.id.action_settings) {
+            // Start the "hello" activity
+            Intent intent = new Intent(MainActivity.this, hello.class);
+            startActivity(intent);
+            return true;
+        } else if (itemId == R.id.action_about) {
+            // Show a toast message for "About" item clicked
+            Toast.makeText(this, "About clicked", Toast.LENGTH_SHORT).show();
+            return true;
+        } else if (itemId == R.id.action_help) {
+            // Show a toast message for "Help" item clicked
+            Toast.makeText(this, "Help clicked", Toast.LENGTH_SHORT).show();
+            return true;
+        } else {
+            return super.onOptionsItemSelected(item);
+        }
+    }
+}
+
+
+activity_main.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".MainActivity">
+
+       <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Hello, World!"
+        android:textSize="24sp"
+        android:layout_gravity="center_horizontal" />
+
+</LinearLayout>
+
+
+res/menu/main_menu.xml
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_settings"
+        android:title="Settings"
+        android:icon="@drawable/ic"
+        android:orderInCategory="100"
+        android:visible="true"/>
+    <item
+        android:id="@+id/action_about"
+        android:title="About"
+        android:icon="@drawable/icm"
+        android:orderInCategory="200"
+        android:visible="true"/>
+    <item
+        android:id="@+id/action_help"
+        android:title="Help"
+        android:icon="@drawable/icmp"
+        android:orderInCategory="300"
+        android:visible="true"/>
+</menu>
+
+res/values/themes.xml
+<resources>
+
+    <style name="Theme.Demo" parent="Theme.AppCompat.Light.DarkActionBar">
+
+        <item name="colorPrimary">@color/black</item>
+        <item name="colorPrimaryDark">@color/black</item>
+        <item name="colorAccent">@color/black</item>
+        <item name="android:windowActionBar">true</item>
+        <item name="android:windowNoTitle">false</item>
+    </style>
+
+</resources>
+
+hello.java
+package com.example.demo;
+import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle;
+import android.widget.TextView;
+import org.w3c.dom.Text;
+public class hello extends AppCompatActivity {
+    TextView text;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_hello);
+        text = findViewById(R.id.textView);
+        String sname=getIntent().getStringExtra("name");
+        text.setText("Welcome "+sname);
+    }
+}
+
+activity_hello.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".hello">
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="hello" />
+
+</LinearLayout>
+
+
+manifest :
+<activity android:name=".hello"></activity>
