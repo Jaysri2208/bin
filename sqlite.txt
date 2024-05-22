@@ -1,0 +1,302 @@
+MainActivity.java
+package com.example.sqlite;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import android.database.Cursor;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+
+public class sqlite extends AppCompatActivity {
+    DatabaseHelper mydb;
+    EditText etName, etLocation, etPhone, etId;
+    Button registerBtn, showBtn, updateBtn, deleteBtn;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.sqlite);
+
+        mydb = new DatabaseHelper(this);
+
+        etName = findViewById(R.id.name);
+        etLocation = findViewById(R.id.location);
+        etPhone = findViewById(R.id.phone);
+        etId = findViewById(R.id.no);
+
+        registerBtn = findViewById(R.id.register);
+        showBtn = findViewById(R.id.show);
+        updateBtn = findViewById(R.id.update);
+        deleteBtn = findViewById(R.id.delete);
+
+        registerData();
+        showData();
+        updateData();
+        deleteData();
+    }
+
+    public void registerData() {
+        registerBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                boolean inserted = mydb.insertData(
+                        etName.getText().toString(),
+                        etLocation.getText().toString(),
+                        etPhone.getText().toString());
+
+                if (inserted) {
+                    Toast.makeText(sqlite.this, "Data Inserted", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(sqlite.this, "Error Inserting Data", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    public void showData() {
+        showBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Cursor cursor = mydb.Showdata();
+                if (cursor.getCount() == 0) {
+                    showMessage("Error", "No Data Found");
+                    return;
+                }
+
+                StringBuffer buffer = new StringBuffer();
+                while (cursor.moveToNext()) {
+                    buffer.append("ID: " + cursor.getString(0) + "\n");
+                    buffer.append("Name: " + cursor.getString(1) + "\n");
+                    buffer.append("Location: " + cursor.getString(2) + "\n");
+                    buffer.append("Phone: " + cursor.getString(3) + "\n\n");
+                }
+
+                showMessage("Mechanic Data", buffer.toString());
+            }
+        });
+    }
+
+    public void updateData() {
+        updateBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                boolean updated = mydb.update(
+                        etId.getText().toString(),
+                        etName.getText().toString(),
+                        etLocation.getText().toString(),
+                        etPhone.getText().toString());
+
+                if (updated) {
+                    Toast.makeText(sqlite.this, "Data Updated", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(sqlite.this, "Error Updating Data", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    public void deleteData() {
+        deleteBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int deleted = mydb.delete(etId.getText().toString());
+                if (deleted > 0) {
+                    Toast.makeText(sqlite.this, "Data Deleted", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(sqlite.this, "Error Deleting Data", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    public void showMessage(String title, String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(true);
+        builder.setTitle(title)
+                .setMessage(message)
+                .show();
+    }
+}
+
+
+DatabaseHelper.java
+
+package com.example.sqlite;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+public class DatabaseHelper extends SQLiteOpenHelper {
+
+    public static final String Database_name = "Mechanics.db";
+    public static final String Table_name = "Mechanic_table";
+    public static final String col_id = "Id";
+    public static final String col_name = "Name";
+    public static final String col_location = "Location";
+    public static final String col_phone = "Phone";
+
+    public DatabaseHelper(Context context) {
+        super(context, Database_name, null, 1);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        db.execSQL("create table " + Table_name + " (Id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Name TEXT, Location TEXT, Phone TEXT)");
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
+        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + Table_name);
+        onCreate(sqLiteDatabase);
+    }
+
+    public boolean insertData(String name, String location, String phone) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(col_name, name);
+        cv.put(col_location, location);
+        cv.put(col_phone, phone);
+        long result = db.insert(Table_name, null, cv);
+        return result != -1;
+    }
+
+    public Cursor Showdata() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        return db.rawQuery("select * from " + Table_name, null);
+    }
+
+    public boolean update(String id, String name, String location, String phone) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(col_name, name);
+        cv.put(col_location, location);
+        cv.put(col_phone, phone);
+        db.update(Table_name, cv, "Id = ?", new String[]{id});
+        return true;
+    }
+
+    public Integer delete(String id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        return db.delete(Table_name, "Id = ?", new String[]{id});
+    }
+}
+
+
+sqlite.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".sqlite">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mechanic Registration"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="24dp"/>
+
+    <EditText
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Name"
+        android:padding="16dp"/>
+
+    <EditText
+        android:id="@+id/location"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Location"
+        android:padding="16dp"/>
+
+    <EditText
+        android:id="@+id/phone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Phone Number"
+        android:padding="16dp"/>
+
+    <EditText
+        android:id="@+id/no"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="ID"
+        android:padding="16dp"/>
+
+    <Button
+        android:id="@+id/register"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Register"
+        android:layout_marginTop="16dp"
+        android:layout_gravity="center_horizontal"/>
+
+    <Button
+        android:id="@+id/show"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show"
+        android:layout_marginTop="16dp"
+        android:layout_gravity="center_horizontal"/>
+
+    <Button
+        android:id="@+id/update"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Update"
+        android:layout_marginTop="16dp"
+        android:layout_gravity="center_horizontal"/>
+
+    <Button
+        android:id="@+id/delete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Delete"
+        android:layout_marginTop="16dp"
+        android:layout_gravity="center_horizontal"/>
+
+</LinearLayout>
+
+manifest
+
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Sqlite"
+        tools:targetApi="31">
+        <activity
+            android:name=".sqlite"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
