@@ -1,0 +1,481 @@
+package com.example.datepicker;
+
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
+
+public class MainActivity extends AppCompatActivity {
+    private static final String CHANNEL_ID = "noti_channel";
+    Button buttonDate, buttonTime, buttonAlertDialog, buttonProgressDialog,buttonStatus;
+    ProgressDialog progressDialog;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        buttonDate = findViewById(R.id.buttonDate);
+        buttonTime = findViewById(R.id.buttonTime);
+        buttonAlertDialog = findViewById(R.id.buttonAlertDialog);
+        buttonProgressDialog = findViewById(R.id.buttonProgressDialog);
+        buttonStatus = findViewById(R.id.buttonStatus);
+
+        createNotificationChannel();
+
+
+        buttonDate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, DatePickerActivity.class);
+                startActivity(intent);
+            }
+        });
+buttonStatus.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            showStatusNotification();
+        }
+    });
+        buttonTime.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, TimePickerActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        buttonAlertDialog.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showAlertDialog();
+            }
+        });
+
+        buttonProgressDialog.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showProgressDialog();
+            }
+        });
+    }
+
+    private void showAlertDialog() {
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setTitle("Confirm Exit..!!!");
+        alertDialogBuilder.setIcon(R.drawable.question); // Replace with your icon
+        alertDialogBuilder.setMessage("Are you sure, You want to exit");
+        alertDialogBuilder.setCancelable(false);
+
+        alertDialogBuilder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface arg0, int arg1) {
+                finish();
+            }
+        });
+
+        alertDialogBuilder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Toast.makeText(MainActivity.this, "You clicked No", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        alertDialogBuilder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Toast.makeText(MainActivity.this, "You clicked Cancel", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.show();
+    }
+
+    private void showStatusNotification() {
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Learn2Crack Updates")
+                .setContentText("New Post on Android Notification.")
+                .setTicker("New Message Alert!")
+                .setSmallIcon(R.drawable.noti_ico)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        Intent resultIntent = new Intent(this, ResultActivity.class);
+        PendingIntent pIntent = PendingIntent.getActivity(this, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        notification.setContentIntent(pIntent);
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        manager.notify(0, notification.build());
+    }
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "NotiChannel";
+            String description = "Channel for noti notifications";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+    private void showProgressDialog() {
+        progressDialog = new ProgressDialog(MainActivity.this);
+        progressDialog.setMax(100);
+        progressDialog.setMessage("Its loading....");
+        progressDialog.setTitle("ProgressDialog bar example");
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        progressDialog.show();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (progressDialog.getProgress() <= progressDialog.getMax()) {
+                        Thread.sleep(200);
+                        handler.sendMessage(handler.obtainMessage());
+                        if (progressDialog.getProgress() == progressDialog.getMax()) {
+                            progressDialog.dismiss();
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+    Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            progressDialog.incrementProgressBy(1);
+        }
+    };
+}
+
+
+
+
+
+
+
+
+
+main.xml:
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <Button
+        android:id="@+id/buttonDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DATE"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"/>
+
+    <Button
+        android:id="@+id/buttonTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TIME"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/buttonDate"
+        android:layout_marginTop="20dp"/>
+
+    <Button
+        android:id="@+id/buttonAlertDialog"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ALERT DIALOG"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/buttonTime"
+        android:layout_marginTop="20dp"/>
+
+    <Button
+        android:id="@+id/buttonProgressDialog"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="PROGRESS DIALOG"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/buttonAlertDialog"
+        android:layout_marginTop="20dp"/>
+
+    <Button
+        android:id="@+id/buttonStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="STATUS"
+        android:layout_gravity="center"
+        android:layout_below="@+id/buttonProgressDialog"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"/>
+
+</RelativeLayout>
+
+
+
+
+
+
+
+res/value/theme.xml
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.DatePicker" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    </style>
+
+    <style name="Theme.DatePicker" parent="Base.Theme.DatePicker" />
+</resources>
+
+
+
+
+
+
+ResultActivity.java:
+package com.example.datepicker;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.os.Bundle;
+
+public class ResultActivity extends AppCompatActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_result);
+    }
+}
+
+
+
+
+
+activity_result:
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical" >
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="30sp"
+        android:text="Android Notification" />
+</LinearLayout>
+
+
+
+
+
+
+DatePickerActivity.java:
+package com.example.datepicker;
+
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.DatePicker;
+import android.widget.TextView;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class DatePickerActivity extends AppCompatActivity {
+    DatePicker picker;
+    Button displayDate;
+    TextView textViewDate;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_date_picker);
+
+        textViewDate = findViewById(R.id.textViewDate);
+        picker = findViewById(R.id.datePicker);
+        displayDate = findViewById(R.id.buttonChangeDate);
+
+        // Display the initial date when the activity is created
+        textViewDate.setText("Current Date: " + getCurrentDate());
+
+        displayDate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                textViewDate.setText("Changed Date: " + getCurrentDate());
+            }
+        });
+    }
+
+    public String getCurrentDate() {
+        int day = picker.getDayOfMonth();
+        int month = picker.getMonth() + 1; // Month is 0 based
+        int year = picker.getYear();
+        return String.format("%02d/%02d/%04d", month, day, year);
+    }
+}
+
+
+
+
+
+activity_date_picker.xml:
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/textViewDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/buttonChangeDate"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="20dp"
+        android:text="Current Date"
+        android:textSize="18sp"
+        android:visibility="visible"/>
+
+    <Button
+        android:id="@+id/buttonChangeDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Change Date"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="20dp"
+        android:layout_alignParentBottom="true"/>
+
+    <DatePicker
+        android:id="@+id/datePicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true" />
+</RelativeLayout>
+
+
+
+
+TimePickerActivity.java:
+package com.example.datepicker;
+
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.TimePicker;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class TimePickerActivity extends AppCompatActivity {
+    TextView textViewTime;
+    TimePicker timePicker;
+    Button changeTime;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_time_picker);
+
+        textViewTime = findViewById(R.id.textViewTime);
+        timePicker = findViewById(R.id.timePicker);
+        timePicker.setIs24HourView(true);
+        changeTime = findViewById(R.id.buttonChangeTime);
+
+        // Display the initial time when the activity is created
+        textViewTime.setText(getCurrentTime());
+
+        changeTime.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                textViewTime.setText(getCurrentTime());
+            }
+        });
+    }
+
+    public String getCurrentTime() {
+        int hour = timePicker.getCurrentHour();
+        int minute = timePicker.getCurrentMinute();
+        String currentTime = "Selected Time: " + String.format("%02d", hour) + ":" + String.format("%02d", minute);
+        return currentTime;
+    }
+}
+
+
+
+
+
+activity_time_picker.xml:
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/textViewTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/buttonChangeTime"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="20dp"
+        android:text="Current Time"
+        android:textSize="18sp"
+        android:visibility="visible"/>
+
+    <Button
+        android:id="@+id/buttonChangeTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Change Time"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="20dp"
+        android:layout_alignParentBottom="true"/>
+
+    <TimePicker
+        android:id="@+id/timePicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true" />
+</RelativeLayout>
+
+
+
+
+
+
+
+manifest:
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+<activity
+            android:name=".ResultActivity"
+            android:exported="false"
+            android:label="ResultActivity"
+            android:theme="@style/Theme.DatePicker" />
+
+
+<activity android:name=".DatePickerActivity" />
+        <activity android:name=".TimePickerActivity" />

@@ -1,0 +1,299 @@
+MainActivity.java
+package com.example.demo;
+
+import android.app.DatePickerDialog;
+import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.DatePicker;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.Spinner;
+import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
+
+public class MainActivity extends AppCompatActivity {
+
+    private ProgressBar progressBar;
+    private Spinner spinnerLabName;
+    private EditText editTextDescription;
+    private EditText editTextDate;
+
+    private Button btnSubmit;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        progressBar = findViewById(R.id.progressBar);
+        spinnerLabName = findViewById(R.id.spinnerLabName);
+        editTextDescription = findViewById(R.id.editTextDescription);
+        editTextDate = findViewById(R.id.editTextDate);
+
+        // Define the options (Lab Names)
+        String[] labNames = {"Blood Test", "Sugar Test"};
+
+        // Create an ArrayAdapter using the string array and a default spinner layout
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, labNames);
+
+        // Specify the layout to use when the list of choices appears
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        // Apply the adapter to the spinner
+        spinnerLabName.setAdapter(adapter);
+
+        // Initialize other views and set up listeners as needed
+        // Set up TextWatchers to listen for changes in the fields
+        spinnerLabName.setOnItemSelectedListener(spinnerItemSelectedListener);
+        editTextDescription.addTextChangedListener(textWatcher);
+        editTextDate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showDatePicker();
+            }
+        });
+
+        btnSubmit = findViewById(R.id.btnSubmit);
+        btnSubmit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (progressBar.getProgress() == 100) {
+                    // Validate other fields as needed
+                    if (isDateSelected()) {
+                        Toast.makeText(MainActivity.this, "You can submit!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "Please select a date.", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(MainActivity.this, "You can't submit yet. Fill all fields.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+
+    // SpinnerItemSelectedListener for the Spinner
+    private AdapterView.OnItemSelectedListener spinnerItemSelectedListener = new AdapterView.OnItemSelectedListener() {
+        @Override
+        public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+            // Handle Spinner item selection if needed
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> parentView) {
+            // This method is required to be implemented but can be left empty
+        }
+    };
+
+    // TextWatcher to monitor changes in the fields
+    private final TextWatcher textWatcher = new TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            // Not needed for this implementation
+        }
+
+        @Override
+        public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            // Not needed for this implementation
+        }
+
+        @Override
+        public void afterTextChanged(Editable editable) {
+            // Calculate the progress based on the number of filled fields
+            int progress = calculateProgress();
+            // Update the progress bar
+            progressBar.setProgress(progress);
+        }
+    };
+
+    // Check if a date is selected in the EditText
+    private boolean isDateSelected() {
+        // Retrieve the text from the date EditText
+        String selectedDate = editTextDate.getText().toString().trim();
+
+        // Perform any additional validation as needed
+        // In this example, we check if the selectedDate is not empty
+        return !selectedDate.isEmpty();
+    }
+
+    // Show DatePickerDialog
+    private void showDatePicker() {
+        Calendar calendar = Calendar.getInstance();
+        DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                new DatePickerDialog.OnDateSetListener() {
+                    @Override
+                    public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
+                        // Update Calendar instance with selected date
+                        calendar.set(Calendar.YEAR, year);
+                        calendar.set(Calendar.MONTH, monthOfYear);
+                        calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+
+                        // Format the selected date and set it to the EditText
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+                        editTextDate.setText(dateFormat.format(calendar.getTime()));
+                    }
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+        );
+        datePickerDialog.show();
+    }
+
+    // Calculate the progress based on the number of filled fields
+    private int calculateProgress() {
+        int progress = 0;
+
+        // Check if Lab Name is selected
+        if (!spinnerLabName.getSelectedItem().toString().trim().isEmpty()) {
+            progress += 33; // Assuming each field contributes equally to the progress
+        }
+
+        // Check if Description is filled
+        if (!editTextDescription.getText().toString().trim().isEmpty()) {
+            progress += 33;
+        }
+
+        // Check if Date is selected
+        if (!editTextDate.getText().toString().trim().isEmpty() || isDateSelected()) {
+            progress += 34;
+        }
+
+        return Math.min(progress, 100);
+    }
+
+
+
+    // Calculate the progress based on the number of filled fields
+
+}
+
+
+
+
+activity_main.xml
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="@android:color/white"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Lab Report"
+        android:textSize="25sp"
+        android:textColor="@android:color/black"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_marginStart="25dp"
+        android:layout_marginTop="25dp"
+        android:layout_marginEnd="25dp"
+        android:layout_marginBottom="50dp"
+        android:background="@android:color/white"
+        app:layout_constraintTop_toBottomOf="@id/textView">
+
+        <!-- Name -->
+        <TextView
+            android:id="@+id/textViewLabName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lab Name"
+            android:textColor="@android:color/black"
+            android:textSize="18sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="4dp"/>
+
+        <Spinner
+            android:id="@+id/spinnerLabName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/black"
+            android:layout_marginBottom="16dp"
+            />
+
+        <TextView
+            android:id="@+id/textViewDescription"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Description"
+            android:textColor="@android:color/black"
+            android:textSize="18sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="4dp"/>
+
+        <EditText
+            android:id="@+id/editTextDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="text"
+            android:textSize="16sp"
+            android:textColor="@android:color/black"
+            android:layout_marginBottom="16dp"/>
+
+
+
+        <!-- Allergic Medication -->
+        <TextView
+            android:id="@+id/textViewDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Date"
+            android:textColor="@android:color/black"
+            android:textSize="18sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="4dp"/>
+        <EditText
+            android:id="@+id/editTextDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="textMultiLine"
+            android:textSize="16sp"
+            android:textColor="@android:color/black"
+            android:layout_marginBottom="16dp"/>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:max="100"
+            android:progress="0"
+            app:layout_constraintTop_toBottomOf="@id/textViewLabName"/>
+
+        <Button
+            android:id="@+id/btnSubmit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Submit"
+            android:layout_below="@id/editTextDate"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="16dp"
+            android:padding="8dp"/>
+
+
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
