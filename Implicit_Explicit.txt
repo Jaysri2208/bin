@@ -1,0 +1,120 @@
+MainActivity.java
+package com.example.demo;
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+
+public class MainActivity extends AppCompatActivity {
+    Button btn1;
+    Button btn2;
+    EditText txt;
+    @SuppressLint("MissingInflatedId")
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        btn1=findViewById(R.id.implicit);
+        btn2=findViewById(R.id.explicit);
+        txt=findViewById(R.id.name);
+
+        btn1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String name=txt.getText().toString();
+                Intent intent=new Intent(MainActivity.this,hello.class);
+                intent.putExtra("name",name);
+                startActivity(intent);
+            }
+        });
+
+        btn2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String url="https://www.google.com/";
+                Intent intent=new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                startActivity(intent);
+
+            }
+        });
+    }
+}
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity" >
+
+    <EditText
+        android:id="@+id/name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Name"/>
+    <Button
+        android:id="@+id/implicit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="implicit" />
+
+    <Button
+        android:id="@+id/explicit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="explicit" />
+
+</LinearLayout>
+
+
+hello.java
+
+package com.example.demo;
+import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle;
+import android.widget.TextView;
+import org.w3c.dom.Text;
+public class hello extends AppCompatActivity {
+    TextView text;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_hello);
+        text = findViewById(R.id.textView);
+        String sname=getIntent().getStringExtra("name");
+        text.setText("Welcome "+sname);
+    }
+}
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".hello">
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="hello" />
+
+</LinearLayout>
+
+
+AndroidManifest --> add--> <activity android:name=".hello"></activity>
