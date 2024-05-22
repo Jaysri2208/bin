@@ -1,0 +1,213 @@
+MainActivity.java:
+package com.example.sample;
+
+import androidx.appcompat.app.AppCompatActivity;
+import android.Manifest;
+import android.app.DatePickerDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.telephony.SmsManager;
+import android.view.ContextMenu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.DatePicker;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import java.util.Calendar;
+
+public class MainActivity extends AppCompatActivity {
+    private ListView AmountListView;
+    private String[] amount = {"Transfer Funds", "Pay due Amount"};
+
+    private static final String TAG = "MainActivity";
+    private static final int PERMISSION_REQUEST_SEND_SMS = 123;
+
+    private EditText phoneNumberEditText;
+    private EditText messageEditText;
+    private Button sendButton;
+
+    private BroadcastReceiver balanceReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Handle the balance threshold alert
+            Toast.makeText(context, "Balance threshold exceeded!", Toast.LENGTH_LONG).show();
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        phoneNumberEditText = findViewById(R.id.edit_text_phone_number);
+        messageEditText = findViewById(R.id.edit_text_message);
+        sendButton = findViewById(R.id.button_send);
+
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String phoneNumber = phoneNumberEditText.getText().toString();
+                String message = messageEditText.getText().toString();
+                if (!phoneNumber.isEmpty() && !message.isEmpty()) {
+                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.SEND_SMS}, PERMISSION_REQUEST_SEND_SMS);
+                    } else {
+                        sendSMS(phoneNumber, message);
+                    }
+                } else {
+                    Toast.makeText(MainActivity.this, "Please enter phone number and message.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        AmountListView = findViewById(R.id.contact_list_view);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, amount);
+        AmountListView.setAdapter(adapter);
+
+        registerForContextMenu(AmountListView);
+
+        // Register the broadcast receiver for balance threshold alerts
+        IntentFilter filter = new IntentFilter("com.example.ACTION_BALANCE_THRESHOLD");
+        registerReceiver(balanceReceiver, filter);
+    }
+
+    private void sendSMS(String phoneNumber, String message) {
+        try {
+            SmsManager smsManager = SmsManager.getDefault();
+            smsManager.sendTextMessage(phoneNumber, null, message, null, null);
+            Toast.makeText(getApplicationContext(), "SMS sent.", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(getApplicationContext(), "SMS failed, please try again.", Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_SEND_SMS) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                String phoneNumber = phoneNumberEditText.getText().toString();
+                String message = messageEditText.getText().toString();
+                sendSMS(phoneNumber, message);
+            } else {
+                Toast.makeText(this, "Permission denied to send SMS", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.context_menu, menu);
+    }
+
+    @Override
+    public boolean onContextItemSelected(@NonNull MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        int id = item.getItemId();
+        if (id == R.id.transfer) {
+            Toast.makeText(this, "Funds transferred", Toast.LENGTH_SHORT).show();
+            return true;
+        } else if (id == R.id.paydue) {
+            showDatePicker();
+            return true;
+        }
+
+        return super.onContextItemSelected(item);
+    }
+
+    private void showDatePicker() {
+        final Calendar calendar = Calendar.getInstance();
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+        DatePickerDialog datePickerDialog = new DatePickerDialog(this, (view, year1, month1, dayOfMonth) -> Toast.makeText(MainActivity.this, "Due amount will be paid on: " + dayOfMonth + "/" + (month1 + 1) + "/" + year1, Toast.LENGTH_SHORT).show(), year, month, day);
+        datePickerDialog.show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(balanceReceiver);
+    }
+}
+
+contxt_menu.xml:
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/transfer"
+        android:title="Transfer funds"/>
+    <item
+        android:id="@+id/paydue"
+        android:title="Paydue amount"/>
+
+</menu>
+
+activity_main.xml:
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <EditText
+        android:id="@+id/edit_text_phone_number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter phone number"
+        android:padding="16dp"
+        android:inputType="phone" />
+
+    <EditText
+        android:id="@+id/edit_text_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/edit_text_phone_number"
+        android:layout_marginTop="16dp"
+        android:hint="Enter message"
+        android:padding="16dp"
+        android:inputType="textMultiLine"
+        android:minLines="3" />
+
+    <Button
+        android:id="@+id/button_send"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/edit_text_message"
+        android:layout_marginTop="16dp"
+        android:text="Send" />
+
+    <ListView
+        android:id="@+id/contact_list_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/button_send"
+        android:layout_marginTop="16dp"
+        android:focusable="false"
+        android:focusableInTouchMode="false" />
+</RelativeLayout>
+
+
+manifest: <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SEND_SMS"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
