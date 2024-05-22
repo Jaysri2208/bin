@@ -1,0 +1,358 @@
+MainActivity.java
+
+package com.example.demo;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.media.MediaPlayer;
+import android.media.MediaRecorder;
+import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.SeekBar;
+import android.widget.Toast;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+public class MainActivity extends AppCompatActivity {
+
+    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
+    private static final String LOG_TAG = "AudioRecorder";
+    private MediaRecorder recorder;
+    private String audioFilePath = null;
+    private Button recordBtn;
+    private Button stopBtn;
+    private Button playBtn;
+    private Button pauseBtn;
+    private Button resumeBtn;
+    private MediaPlayer mediaPlayer;
+    private SeekBar seekBar;
+    private boolean isPaused = false;
+    private int resumePosition;
+    private Runnable updateSeekBarRunnable;
+    private Handler seekBarHandler;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        recordBtn = findViewById(R.id.recordBtn);
+        stopBtn = findViewById(R.id.stopBtn);
+        playBtn = findViewById(R.id.playBtn);
+        pauseBtn = findViewById(R.id.pauseBtn);
+        resumeBtn = findViewById(R.id.resumeBtn);
+        seekBar = findViewById(R.id.seekBar);
+
+        recordBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (hasRecordAudioPermission()) {
+                    startRecording();
+                } else {
+                    requestRecordAudioPermission();
+                }
+            }
+        });
+
+        stopBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopRecording();
+            }
+        });
+
+        playBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (audioFilePath != null) {
+                    playAudio();
+                }
+            }
+        });
+
+        pauseBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pauseAudio();
+            }
+        });
+
+        resumeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                resumeAudio();
+            }
+        });
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser && mediaPlayer != null) {
+                    mediaPlayer.seekTo(progress);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // Not needed for functionality
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // Not needed for functionality
+            }
+        });
+
+        seekBarHandler = new Handler();
+        updateSeekBarRunnable = new Runnable() {
+            @Override
+            public void run() {
+                updateSeekBar();
+                seekBarHandler.postDelayed(this, 1000); // Update seek bar every 1000ms
+            }
+        };
+    }
+
+    private boolean hasRecordAudioPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestRecordAudioPermission() {
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startRecording();
+            } else {
+                // Permission denied, show a message to the user.
+                Toast.makeText(this, "Permission Denied to record audio", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void startRecording() {
+        String fileName = generateFileName();
+        audioFilePath = getExternalFilesDir(Environment.DIRECTORY_MUSIC) + "/" + fileName;
+
+        recorder = new MediaRecorder();
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        recorder.setOutputFile(audioFilePath);
+        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+
+        try {
+            recorder.prepare();
+            recorder.start();
+            Log.d(LOG_TAG, "Recording started");
+            Toast.makeText(this, "Recording started", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "prepare() failed");
+        }
+    }
+
+    private void stopRecording() {
+        if (recorder != null) {
+            recorder.stop();
+            recorder.release();
+            recorder = null;
+            Log.d(LOG_TAG, "Recording stopped");
+            Toast.makeText(this, "Recording stopped", Toast.LENGTH_SHORT).show();
+
+            if (audioFilePath != null) {
+                // Use audioFilePath as needed, e.g., play the recorded audio
+                Log.d(LOG_TAG, "Audio file saved at: " + audioFilePath);
+            }
+        }
+    }
+
+    private void playAudio() {
+        try {
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setDataSource(audioFilePath);
+            mediaPlayer.prepare();
+            mediaPlayer.start();
+            Log.d(LOG_TAG, "Playing audio");
+            Toast.makeText(this, "Playing audio", Toast.LENGTH_SHORT).show();
+
+            // Initialize seek bar
+            seekBar.setMax(mediaPlayer.getDuration());
+            updateSeekBar();
+            seekBarHandler.postDelayed(updateSeekBarRunnable, 1000); 
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "prepare() failed");
+        }
+    }
+
+    private void pauseAudio() {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            mediaPlayer.pause();
+            resumePosition = mediaPlayer.getCurrentPosition();
+            isPaused = true;
+            Log.d(LOG_TAG, "Audio paused");
+            Toast.makeText(this, "Audio paused", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void resumeAudio() {
+        if (mediaPlayer != null && isPaused) {
+            mediaPlayer.seekTo(resumePosition);
+            mediaPlayer.start();
+            isPaused = false;
+            Log.d(LOG_TAG, "Audio resumed");
+            Toast.makeText(this, "Audio resumed", Toast.LENGTH_SHORT).show();
+            updateSeekBar();
+        }
+    }
+
+    private void updateSeekBar() {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            seekBar.setProgress(mediaPlayer.getCurrentPosition());
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (recorder != null) {
+            recorder.release();
+            recorder = null;
+        }
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+        seekBarHandler.removeCallbacks(updateSeekBarRunnable); 
+    }
+
+    private String generateFileName() {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        return "Recording_" + timeStamp + ".mp4";
+    }
+}
+
+
+activity_main.xml
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <Button
+        android:id="@+id/recordBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Record"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="32dp"/>
+
+    <Button
+        android:id="@+id/stopBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Stop"
+        android:layout_below="@id/recordBtn"
+        android:layout_marginTop="16dp"
+        android:layout_centerHorizontal="true"/>
+
+    <Button
+        android:id="@+id/playBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Play"
+        android:layout_below="@id/stopBtn"
+        android:layout_marginTop="16dp"
+        android:layout_centerHorizontal="true"/>
+
+    <Button
+        android:id="@+id/pauseBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pause"
+        android:layout_below="@id/playBtn"
+        android:layout_marginTop="16dp"
+        android:layout_centerHorizontal="true"/>
+
+    <Button
+        android:id="@+id/resumeBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Resume"
+        android:layout_below="@id/pauseBtn"
+        android:layout_marginTop="16dp"
+        android:layout_centerHorizontal="true"/>
+
+    <SeekBar
+        android:id="@+id/seekBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/resumeBtn"
+        android:layout_marginTop="16dp"
+        android:layout_centerHorizontal="true"/>
+
+</RelativeLayout>
+
+Manifest
+
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Demo"
+        tools:targetApi="31">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
+
+
+xml/file_paths.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-path
+        name="external_files"
+        path="." />
+</paths>
+

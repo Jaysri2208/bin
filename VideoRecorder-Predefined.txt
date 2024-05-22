@@ -1,0 +1,116 @@
+MainActivity.java
+
+package com.example.demo;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.net.Uri;
+import android.os.Bundle;
+import android.widget.MediaController;
+import android.widget.VideoView;
+
+public class MainActivity extends AppCompatActivity {
+
+    private VideoView videoView;
+    private MediaController mediaController;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        videoView = findViewById(R.id.videoView);
+        mediaController = new MediaController(this);
+
+        // Set media controller for controlling video playback
+        videoView.setMediaController(mediaController);
+
+
+        String videoPath = "android.resource://" + getPackageName() + "/" + R.raw.video;
+        videoView.setVideoURI(Uri.parse(videoPath));
+
+
+        videoView.start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        if (videoView.isPlaying()) {
+            videoView.pause();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (!videoView.isPlaying()) {
+            videoView.start();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        videoView.stopPlayback();
+    }
+}
+
+activity_main.xml
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <VideoView
+        android:id="@+id/videoView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</RelativeLayout>
+
+Manifest
+
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Demo"
+        tools:targetApi="31">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
+
+
+
+
+
+res/raw/video.mp4

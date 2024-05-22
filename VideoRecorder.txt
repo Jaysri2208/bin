@@ -1,0 +1,318 @@
+MainActivity.java 
+
+package com.example.demo;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.provider.MediaStore;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.SeekBar;
+import android.widget.VideoView;
+
+public class MainActivity extends AppCompatActivity {
+
+    private static final int REQUEST_VIDEO_CAPTURE = 1;
+    private static final int REQUEST_PERMISSIONS = 2;
+    private Uri videoUri = null;
+    private VideoView videoView;
+    private Button recordVideoBtn;
+    private Button startBtn;
+    private Button pauseBtn;
+    private Button resumeBtn;
+    private Button stopBtn;
+    private SeekBar seekBar;
+    private Handler handler = new Handler();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        recordVideoBtn = findViewById(R.id.idBtnRecordVideo);
+        videoView = findViewById(R.id.videoView);
+        startBtn = findViewById(R.id.startBtn);
+        pauseBtn = findViewById(R.id.pauseBtn);
+        resumeBtn = findViewById(R.id.resumeBtn);
+        stopBtn = findViewById(R.id.stopBtn);
+        seekBar = findViewById(R.id.seekBar);
+
+        recordVideoBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (hasPermissions()) {
+                    dispatchTakeVideoIntent();
+                } else {
+                    requestPermissions();
+                }
+            }
+        });
+
+        startBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startVideo();
+            }
+        });
+
+        pauseBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pauseVideo();
+            }
+        });
+
+        resumeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                resumeVideo();
+            }
+        });
+
+        stopBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopVideo();
+            }
+        });
+
+        videoView.setOnPreparedListener(mediaPlayer -> {
+            Log.d("VideoView", "Video is prepared. Duration: " + videoView.getDuration());
+            seekBar.setMax(videoView.getDuration());
+            handler.post(updateSeekBar);
+        });
+
+        videoView.setOnCompletionListener(mediaPlayer -> {
+            handler.removeCallbacks(updateSeekBar);
+            seekBar.setProgress(0);
+        });
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    Log.d("SeekBar", "SeekBar progress changed: " + progress);
+                    videoView.seekTo(progress);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                Log.d("SeekBar", "Started tracking SeekBar");
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                Log.d("SeekBar", "Stopped tracking SeekBar");
+            }
+        });
+    }
+
+    private boolean hasPermissions() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestPermissions() {
+        ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.CAMERA,
+                Manifest.permission.READ_MEDIA_VIDEO
+        }, REQUEST_PERMISSIONS);
+    }
+
+    private void dispatchTakeVideoIntent() {
+        Intent takeVideoIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+        if (takeVideoIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(takeVideoIntent, REQUEST_VIDEO_CAPTURE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_PERMISSIONS) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                dispatchTakeVideoIntent();
+            } else {
+                // Permission denied, show a message to the user.
+                Log.d("Permissions", "Camera and media read permissions were denied.");
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_VIDEO_CAPTURE && resultCode == RESULT_OK) {
+            if (data != null) {
+                videoUri = data.getData();
+                Log.d("VideoView", "Video URI: " + videoUri.toString());
+                videoView.setVideoURI(videoUri);
+                videoView.requestFocus();
+            }
+        }
+    }
+
+    private void startVideo() {
+        if (videoUri != null) {
+            Log.d("VideoView", "Starting video playback");
+            videoView.start();
+        }
+    }
+
+    private void pauseVideo() {
+        if (videoView.isPlaying()) {
+            Log.d("VideoView", "Pausing video playback");
+            videoView.pause();
+        }
+    }
+
+    private void resumeVideo() {
+        if (!videoView.isPlaying()) {
+            Log.d("VideoView", "Resuming video playback");
+            videoView.start();
+        }
+    }
+
+    private void stopVideo() {
+        Log.d("VideoView", "Stopping video playback");
+        videoView.stopPlayback();
+        videoUri = null;
+        seekBar.setProgress(0);
+        handler.removeCallbacks(updateSeekBar);
+    }
+
+    private Runnable updateSeekBar = new Runnable() {
+        @Override
+        public void run() {
+            if (videoView.isPlaying()) {
+                seekBar.setProgress(videoView.getCurrentPosition());
+                handler.postDelayed(this, 1000);
+            }
+        }
+    };
+}
+
+
+activity_main.xml
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <VideoView
+        android:id="@+id/videoView"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_centerInParent="true" />
+
+    <SeekBar
+        android:id="@+id/seekBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/videoView"
+        android:layout_marginTop="16dp" />
+
+    <Button
+        android:id="@+id/startBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/seekBar"
+        android:layout_marginTop="16dp"
+        android:text="Start" />
+
+    <Button
+        android:id="@+id/pauseBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/seekBar"
+        android:layout_marginTop="16dp"
+        android:layout_toEndOf="@id/startBtn"
+        android:layout_marginStart="16dp"
+        android:text="Pause" />
+
+    <Button
+        android:id="@+id/resumeBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/seekBar"
+        android:layout_marginTop="16dp"
+        android:layout_toEndOf="@id/pauseBtn"
+        android:layout_marginStart="16dp"
+        android:text="Resume" />
+
+    <Button
+        android:id="@+id/stopBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/seekBar"
+        android:layout_marginTop="16dp"
+        android:layout_toEndOf="@id/resumeBtn"
+        android:layout_marginStart="16dp"
+        android:text="Stop" />
+
+    <Button
+        android:id="@+id/idBtnRecordVideo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="16dp"
+        android:text="Record Video" />
+</RelativeLayout>
+
+
+AndroidManifest
+
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Demo"
+        tools:targetApi="31">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
+
+
+res/xml/file_paths.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-path
+        name="external_files"
+        path="." />
+</paths>
