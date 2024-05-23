@@ -1,34 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.todolist">
-
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity android:name=".AddTaskActivity" />
-        <activity android:name=".EditTaskActivity" />
-        <service android:name=".TaskReminderService" />
-    </application>
-
-</manifest>
 
 
 MainActivity.java
 
 package com.example.todoapp;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -36,6 +14,7 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.ArrayList;
@@ -47,6 +26,9 @@ public class MainActivity extends AppCompatActivity {
     private TaskAdapter taskAdapter;
     private ArrayList<Task> taskList;
     private TaskDatabaseHelper dbHelper;
+
+    private static final int ADD_TASK_REQUEST = 1;
+    private static final int EDIT_TASK_REQUEST = 2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,22 +44,211 @@ public class MainActivity extends AppCompatActivity {
         taskAdapter = new TaskAdapter(this, R.layout.task_item, taskList);
         listViewTasks.setAdapter(taskAdapter);
 
-        // Set listeners
+        registerForContextMenu(listViewTasks);
+
         listViewTasks.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // Handle item click (e.g., show details or mark as done)
             }
         });
-
-        // TODO: Implement context menu for edit and delete actions
-
-        // Example: progressBar.setVisibility(View.VISIBLE); for showing progress
-
-        // TODO: Implement notifications for impending tasks
     }
 
-    // Example: Implement onCreateOptionsMenu and onOptionsItemSelected for menu actions
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        switch (id) {
+            case R.id.action_add_task:
+                Intent addTaskIntent = new Intent(MainActivity.this, AddTaskActivity.class);
+                startActivityForResult(addTaskIntent, ADD_TASK_REQUEST);
+                return true;
+            case R.id.action_settings:
+                Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+                startActivity(settingsIntent);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        getMenuInflater().inflate(R.menu.context_menu, menu);
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        int position = info.position;
+        int id = item.getItemId();
+
+        switch (id) {
+            case R.id.action_edit:
+                Task selectedTask = taskList.get(position);
+                Intent editTaskIntent = new Intent(MainActivity.this, EditTaskActivity.class);
+                editTaskIntent.putExtra("task_id", selectedTask.getId());
+                editTaskIntent.putExtra("task_name", selectedTask.getName());
+                editTaskIntent.putExtra("task_description", selectedTask.getDescription());
+                startActivityForResult(editTaskIntent, EDIT_TASK_REQUEST);
+                return true;
+            case R.id.action_delete:
+                Task taskToDelete = taskList.get(position);
+                dbHelper.deleteTask(taskToDelete.getId());
+                taskList.remove(position);
+                taskAdapter.notifyDataSetChanged();
+                return true;
+            default:
+                return super.onContextItemSelected(item);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == RESULT_OK) {
+            if (requestCode == ADD_TASK_REQUEST || requestCode == EDIT_TASK_REQUEST) {
+                taskList.clear();
+                taskList.addAll(dbHelper.getAllTasks());
+                taskAdapter.notifyDataSetChanged();
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        dbHelper.close();
+    }
+}
+
+
+
+AddTaskActivity.java
+package com.example.todoapp;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+public class AddTaskActivity extends AppCompatActivity {
+
+    private EditText editTextTaskName;
+    private EditText editTextTaskDescription;
+    private Button buttonAddTask;
+
+    private TaskDatabaseHelper dbHelper;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_add_task);
+
+        dbHelper = new TaskDatabaseHelper(this);
+
+        editTextTaskName = findViewById(R.id.editTextTaskName);
+        editTextTaskDescription = findViewById(R.id.editTextTaskDescription);
+        buttonAddTask = findViewById(R.id.buttonAddTask);
+
+        buttonAddTask.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String taskName = editTextTaskName.getText().toString().trim();
+                String taskDescription = editTextTaskDescription.getText().toString().trim();
+
+                if (!taskName.isEmpty()) {
+                    Task newTask = new Task(taskName, taskDescription);
+                    dbHelper.addTask(newTask);
+
+                    Intent resultIntent = new Intent();
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        dbHelper.close();
+    }
+}
+
+EditTaskActivity.java
+
+package com.example.todoapp;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+public class EditTaskActivity extends AppCompatActivity {
+
+    private EditText editTextTaskName;
+    private EditText editTextTaskDescription;
+    private Button buttonUpdateTask;
+
+    private TaskDatabaseHelper dbHelper;
+    private Task currentTask;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_edit_task);
+
+        dbHelper = new TaskDatabaseHelper(this);
+
+        editTextTaskName = findViewById(R.id.editTextTaskName);
+        editTextTaskDescription = findViewById(R.id.editTextTaskDescription);
+        buttonUpdateTask = findViewById(R.id.buttonUpdateTask);
+
+        Intent intent = getIntent();
+        if (intent != null && intent.getExtras() != null) {
+            long taskId = intent.getLongExtra("task_id", -1);
+            String taskName = intent.getStringExtra("task_name");
+            String taskDescription = intent.getStringExtra("task_description");
+
+            currentTask = new Task(taskId, taskName, taskDescription);
+
+            editTextTaskName.setText(taskName);
+            editTextTaskDescription.setText(taskDescription);
+        }
+
+        buttonUpdateTask.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String updatedName = editTextTaskName.getText().toString().trim();
+                String updatedDescription = editTextTaskDescription.getText().toString().trim();
+
+                if (!updatedName.isEmpty()) {
+                    currentTask.setName(updatedName);
+                    currentTask.setDescription(updatedDescription);
+                    dbHelper.updateTask(currentTask);
+
+                    Intent resultIntent = new Intent();
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                }
+            }
+        });
+    }
 
     @Override
     protected void onDestroy() {
@@ -88,7 +259,6 @@ public class MainActivity extends AppCompatActivity {
 
 
 TaskAdapter.java
-
 package com.example.todoapp;
 
 import android.content.Context;
@@ -135,9 +305,9 @@ public class TaskAdapter extends ArrayAdapter<Task> {
     }
 }
 
- TaskDatabaseHelper.java
- 
-package com.example.todoapp;
+
+TaskDatabaseHelper.java
+ package com.example.todoapp;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -161,7 +331,8 @@ public class TaskDatabaseHelper extends SQLiteOpenHelper {
     }
 
     @Override
-    public void onCreate(SQLiteDatabase db) {
+
+       public void onCreate(SQLiteDatabase db) {
         String createTableSQL = "CREATE TABLE " + TABLE_NAME + "(" +
                 COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COLUMN_NAME + " TEXT, " +
@@ -185,6 +356,22 @@ public class TaskDatabaseHelper extends SQLiteOpenHelper {
         return result;
     }
 
+    public int updateTask(Task task) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_NAME, task.getName());
+        values.put(COLUMN_DESCRIPTION, task.getDescription());
+        int result = db.update(TABLE_NAME, values, COLUMN_ID + "=?", new String[]{String.valueOf(task.getId())});
+        db.close();
+        return result;
+    }
+
+    public void deleteTask(long taskId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_NAME, COLUMN_ID + "=?", new String[]{String.valueOf(taskId)});
+        db.close();
+    }
+
     public ArrayList<Task> getAllTasks() {
         ArrayList<Task> taskList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -192,7 +379,7 @@ public class TaskDatabaseHelper extends SQLiteOpenHelper {
 
         if (cursor.moveToFirst()) {
             do {
-                int id = cursor.getInt(cursor.getColumnIndex(COLUMN_ID));
+                long id = cursor.getLong(cursor.getColumnIndex(COLUMN_ID));
                 String name = cursor.getString(cursor.getColumnIndex(COLUMN_NAME));
                 String description = cursor.getString(cursor.getColumnIndex(COLUMN_DESCRIPTION));
                 taskList.add(new Task(id, name, description));
@@ -203,25 +390,100 @@ public class TaskDatabaseHelper extends SQLiteOpenHelper {
         db.close();
         return taskList;
     }
-
-    // Implement methods for update and delete operations
 }
 
 
-NotificationReceiver.java (BroadcastReceiver for notifications)
+NotificationReceiver.java
 package com.example.todoapp;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
+
+import androidx.core.app.NotificationCompat;
 
 public class NotificationReceiver extends BroadcastReceiver {
 
+    private static final String CHANNEL_ID = "ToDoAppChannel";
+    private static final CharSequence CHANNEL_NAME = "ToDoApp Notifications";
+
     @Override
     public void onReceive(Context context, Intent intent) {
-        // TODO: Handle notification creation and delivery
+        long taskId = intent.getLongExtra("task_id", -1);
+        String taskName = intent.getStringExtra("task_name");
+
+        if (taskId != -1 && taskName != null) {
+            showNotification(context, taskName);
+        }
+    }
+
+    private void showNotification(Context context, String taskName) {
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("Upcoming Task")
+                .setContentText("Task '" + taskName + "' is due soon!")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        notificationManager.notify(1, builder.build());
     }
 }
+
+
+Task.java
+package com.example.todoapp;
+
+public class Task {
+    private long id;
+    private String name;
+    private String description;
+
+    public Task(long id, String name, String description) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+    }
+
+    public Task(String name, String description) {
+        this.name = name;
+        this.description = description;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+}
+
 
 activity_main.xml
 
@@ -269,4 +531,147 @@ task_item.xml
         android:layout_marginTop="4dp" />
 
 </LinearLayout>
+
+
+activity_add_task.xml
+
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/editTextTaskName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Task Name"
+        android:inputType="text" />
+
+    <EditText
+        android:id="@+id/editTextTaskDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Task Description"
+        android:inputType="textMultiLine"
+        android:minLines="3" />
+
+    <Button
+        android:id="@+id/buttonAddTask"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Task"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>
+
+activity_edit_task.xml
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/editTextTaskName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Task Name"
+        android:inputType="text" />
+
+    <EditText
+        android:id="@+id/editTextTaskDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Task Description"
+        android:inputType="textMultiLine"
+        android:minLines="3" />
+
+    <Button
+        android:id="@+id/buttonUpdateTask"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Update Task"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>
+
+main_menu.xml
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_add_task"
+        android:title="Add Task"
+        android:icon="@android:drawable/ic_menu_add"
+        android:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_settings"
+        android:title="Settings"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:showAsAction="never" />
+</menu>
+
+
+context_menu.xml
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_edit"
+        android:title="Edit" />
+    <item
+        android:id="@+id/action_delete"
+        android:title="Delete" />
+</menu>
+
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.todoapp">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".AddTaskActivity" />
+        <activity android:name=".EditTaskActivity" />
+        <receiver
+            android:name=".NotificationReceiver"
+           
+	            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.todoapp.SHOW_NOTIFICATION" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+        <activity android:name=".SettingsActivity" />
+    </application>
+
+</manifest>
+
+Strings.xml
+
+<resources>
+    <string name="app_name">ToDoApp</string>
+    <string name="action_add_task">Add Task</string>
+    <string name="action_settings">Settings</string>
+    <string name="edit_task">Edit Task</string>
+    <string name="delete_task">Delete Task</string>
+    <string name="task_name_hint">Task Name</string>
+    <string name="task_description_hint">Task Description</string>
+    <string name="button_add_task">Add Task</string>
+    <string name="button_update_task">Update Task</string>
+    <string name="notification_channel_name">ToDoApp Notifications</string>
+    <string name="notification_channel_description">Channel for ToDoApp notifications</string>
+</resources>
+
 
